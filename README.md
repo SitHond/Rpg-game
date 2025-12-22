@@ -1,92 +1,39 @@
 <p align="center">
-  <img src="https://github.com/remarkablegames/phaser-rpg/blob/master/public/logo192.png" alt="Phaser RPG">
+  <img src="https://github.com/GitHond/phaser-rpg-master/blob/master/public/logo192.png?raw=true" alt="My RPG Game" width="192" height="192">
 </p>
 
-# Phaser RPG
+<h1 align="center">Моя RPG Игра на Phaser 3</h1>
 
-[![release](https://img.shields.io/github/v/release/remarkablegames/phaser-rpg)](https://github.com/remarkablegames/phaser-rpg/releases)
-[![build](https://github.com/remarkablegames/phaser-rpg/actions/workflows/build.yml/badge.svg)](https://github.com/remarkablegames/phaser-rpg/actions/workflows/build.yml)
+<p align="center">
+  Готовый шаблон для создания пиксельных RPG игр на Phaser 3 с TypeScript, React и системой перехода между уровнями
+</p>
 
-<kbd>phaser-rpg</kbd> is a template for making [Phaser](https://phaser.io/) RPG games. The template is inspired by [`phaser-3-tilemap-blog-posts`](https://github.com/mikewesthad/phaser-3-tilemap-blog-posts/tree/master/examples/post-1) (read the [Medium story](https://medium.com/@michaelwesthadley/958fc7e6bbd6)).
+<p align="center">
+  <img src="https://img.shields.io/badge/Phaser-3.90.0-blue" alt="Phaser 3">
+  <img src="https://img.shields.io/badge/TypeScript-5.9.3-3178c6" alt="TypeScript">
+  <img src="https://img.shields.io/badge/React-19.2.7-61dafb" alt="React">
+  <img src="https://img.shields.io/badge/Electron-39.2.7-47848f" alt="Electron">
+</p>
 
-Play the game on:
+## 🎮 О проекте
 
-- [remarkablegames](https://remarkablegames.org/phaser-rpg/)
+Этот проект — модифицированный шаблон для создания классических 2D RPG игр на базе **Phaser 3**, **TypeScript** и **Vite**. Включает готовые системы:
 
-## Prerequisites
+- **🎯 Управление персонажем** (WASD/стрелки, анимации 4-х направлений)
+- **🗺️ Тайловые карты Tiled** с системой слоёв и коллизий
+- **🚪 Система переходов** между сценами/локациями
+- **💬 Диалоговая система** с постепенным выводом текста
+- **🖥️ Поддержка Electron** для сборки в .exe файл
+- **⚛️ React UI компоненты** поверх игрового движка
 
-- [nvm](https://github.com/nvm-sh/nvm#readme)
+## 📋 Предварительные требования
 
-## Install
+- [Node.js](https://nodejs.org/) (версия 18 или выше)
+- [Git](https://git-scm.com/)
 
-Clone the repository:
+## 🚀 Установка
 
-```sh
-git clone https://github.com/remarkablegames/phaser-rpg.git
-cd phaser-rpg
-```
-
-Install the dependencies:
-
-```sh
-npm install
-```
-
-Rename the project:
-
-```sh
-git grep -l phaser-rpg | xargs sed -i '' -e 's/phaser-rpg/my-game/g'
-git grep -l 'Phaser RPG' | xargs sed -i '' -e 's/Phaser RPG/My Game/g'
-```
-
-Update the files:
-
-- [ ] `README.md`
-- [ ] `package.json`
-- [ ] `index.html`
-- [ ] `public/manifest.json`
-- [ ] `src/index.ts`
-
-## Environment Variables
-
-Update the environment variables:
-
-```sh
-cp .env .env.local
-```
-
-Update the **Secrets** in the repository **Settings**.
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the game in the development mode.
-
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
-
-The page will reload if you make edits.
-
-You will also see any errors in the console.
-
-### `npm run build`
-
-Builds the game for production to the `dist` folder.
-
-It correctly bundles in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.
-
-Your game is ready to be deployed!
-
-### `npm run bundle`
-
-Builds the game and packages it into a Zip file in the `dist` folder.
-
-Your game can be uploaded to your server, [Itch.io](https://itch.io/), [Newgrounds](https://www.newgrounds.com/), etc.
-
-## License
-
-[MIT](LICENSE)
+1. **Клонируйте репозиторий:**
+   ```bash
+   git clone https://github.com/GitHond/phaser-rpg-master.git
+   cd phaser-rpg-master
