@@ -1,18 +1,118 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# vite
-/dist
-.env.local
-
-# misc
-*.swp
+# ======================
+# ОС и редакторы
+# ======================
 .DS_Store
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+Thumbs.db
 
+# ======================
+# Node.js зависимости
+# ======================
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnp/
+.pnpm-debug.log*
+
+# ======================
+# Сборки проекта
+# ======================
+# Веб-сборка Vite
+dist/
+dist-electron/
+
+# Electron специфичные файлы
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.msi
+*.nupkg
+*.blockmap
+*.yml
+latest*.yml
+builder-debug.yml
+
+# Папки установки
+build/
+out/
+release/
+installer/
+
+# ======================
+# Кэши и временные файлы
+# ======================
+.cache/
+.tmp/
+temp/
+
+# TypeScript кэш
+*.tsbuildinfo
+
+# Vite кэш
+.vite/
+
+# ======================
+# Окружение и настройки
+# ======================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Ключи и сертификаты
+*.pem
+*.key
+*.cert
+*.crt
+
+# ======================
+# Системные файлы
+# ======================
+# Windows
+[Tt]humbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+__MACOSX/
+
+# Linux
+*~
+
+# ======================
+# Логи
+# ======================
+logs/
+*.log
+
+# ======================
+# Tiled временные файлы
+# ======================
+*.tiled-session
+*.tmx.bak
+*.json.bak
+
+# ======================
+# Игровые сохранения
+# ======================
+savegames/
+*.sav
+
+# ======================
+# Git
+# ======================
+.git/
+.gitattributes
+.gitkeep

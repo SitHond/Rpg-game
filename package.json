@@ -3,16 +3,25 @@
   "version": "1.0.0-alpha",
   "description": "A template for building Phaser RPG games.",
   "author": "Mark <mark@remarkablemark.org>",
+  "main": "electron/main.js",
   "scripts": {
     "build": "npm run clean && vite build",
+    "build:electron": "npm run clean && cross-env ELECTRON=true vite build",
     "bundle": "scripts/bundle.sh",
-    "clean": "rm -rf dist",
+    "clean": "rimraf dist dist-electron",
     "lint": "eslint .",
     "lint:fix": "npm run lint -- --fix",
     "lint:tsc": "tsc --noEmit",
     "prepare": "husky",
     "preview": "vite preview",
-    "start": "vite --host 127.0.0.1 --open"
+    "start": "vite --host 127.0.0.1 --open",
+    "tiled": "start tiled",
+    "electron:dev": "concurrently -k \"npm run start\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build:electron && electron-builder",
+    "electron:win": "npm run build:electron && electron-builder --win",
+    "electron:mac": "npm run build:electron && electron-builder --mac",
+    "electron:linux": "npm run build:electron && electron-builder --linux",
+    "electron:pack": "npm run build:electron && electron-builder --dir"
   },
   "homepage": "https://remarkablegames.org/phaser-rpg/",
   "dependencies": {
@@ -27,6 +36,10 @@
     "@eslint/js": "9.39.2",
     "@types/gtag.js": "0.0.20",
     "@types/react": "19.2.7",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
     "eslint": "9.39.2",
     "eslint-plugin-prettier": "5.5.4",
     "eslint-plugin-simple-import-sort": "12.1.1",
@@ -36,7 +49,51 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.50.0",
     "vite": "7.3.0",
-    "vite-plugin-html": "3.2.2"
+    "vite-plugin-html": "3.2.2",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "org.remarkablegames.phaserrpg",
+    "productName": "Phaser RPG",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/favicon.ico"
+    
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Phaser RPG"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/icon.icns",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "public/icon.png",
+      "category": "Game"
+    }
   },
   "private": true,
   "license": "MIT"
