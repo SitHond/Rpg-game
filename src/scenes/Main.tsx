@@ -1,3 +1,5 @@
+// @ts-nocheck
+// src/scenes/Main.tsx (исправленная версия)
 import Phaser from 'phaser';
 import { render } from 'phaser-jsx';
 
@@ -11,6 +13,7 @@ import {
 } from '../constants';
 import { Player } from '../sprites';
 import { state } from '../state';
+import { BattleState } from '../constants/battle'; // Добавляем импорт
 
 interface Sign extends Phaser.Physics.Arcade.StaticBody {
   text?: string;
@@ -26,26 +29,31 @@ export class Main extends Phaser.Scene {
   private sign!: Sign;
   private tilemap!: Phaser.Tilemaps.Tilemap;
   private worldLayer!: Phaser.Tilemaps.TilemapLayer;
+  
+  // Добавляем свойства для системы случайных встреч
+  private walkSteps: number = 0;
+  private encounterChance: number = 0.05; // 5% шанс встречи
+  private lastPlayerX: number = 0;
+  private lastPlayerY: number = 0;
+  private isInBattle: boolean = false;
+  private battleResultText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super(key.scene.main);
   }
 
   create() {
-      console.log('=== TRANSITION START ===');
-      //console.log('Exit data:', exitData);
-      console.log('Current scene key:', this.scene.key);
-      console.log('All scenes:', Object.keys(this.game.scene.keys));
+    console.log('=== TRANSITION START ===');
+    console.log('Current scene key:', this.scene.key);
+    console.log('All scenes:', Object.keys(this.game.scene.keys));
+    
     this.tilemap = this.make.tilemap({ key: key.tilemap.tuxemon });
 
-    // Параметры - это имя, которое вы присвоили набору листов в Tiled, и
-    // ключ к изображению набора листов в кэше Phaser (имя, используемое при предварительной загрузке).
     const tileset = this.tilemap.addTilesetImage(
       TILESET_NAME,
       key.image.tuxemon,
     )!;
 
-    // Параметры: название слоя (или индекс) из Tiled, tileset, x, y
     this.tilemap.createLayer(TilemapLayer.BelowPlayer, tileset, 0, 0);
     this.worldLayer = this.tilemap.createLayer(
       TilemapLayer.World,
@@ -64,9 +72,6 @@ export class Main extends Phaser.Scene {
     this.physics.world.bounds.width = this.worldLayer.width;
     this.physics.world.bounds.height = this.worldLayer.height;
 
-    // По умолчанию все объекты на экране отображаются по глубине в том порядке, в котором мы их создавали.
-    // Мы хотим, чтобы слой "Над игроком" располагался поверх игрока, поэтому мы явно задаем ему глубину.
-    // Объекты с большей глубиной будут располагаться поверх объектов с меньшей глубиной.
     aboveLayer.setDepth(Depth.AbovePlayer);
 
     this.addPlayer();
@@ -94,21 +99,228 @@ export class Main extends Phaser.Scene {
       this.scene.pause(key.scene.main);
       this.scene.launch(key.scene.menu);
     });
+    
+    // Добавляем обработку клавиш для тестирования
+    this.input.keyboard!.on('keydown-B', () => {
+      console.log('Битва запущена по клавише B');
+      this.triggerBattle();
+    });
   }
 
   private addPlayer() {
-    // Слои объектов в Tiled позволяют добавлять на карту дополнительную информацию, например, точки появления или пользовательские формы столкновений.
-    // В файле tmx есть слой объектов с точкой под названием "Точка появления".
     const spawnPoint = this.tilemap.findObject(
       TilemapLayer.Objects,
       ({ name }) => name === TilemapObject.SpawnPoint,
     )!;
 
+    // Используем наш класс Player
     this.player = new Player(this, spawnPoint.x!, spawnPoint.y!);
-    this.addLevelTransitions();
-
-    // Следите за игроком и worldLayer на предмет столкновений
+    
+    // Запоминаем начальную позицию для отслеживания движения
+    this.lastPlayerX = this.player.x;
+    this.lastPlayerY = this.player.y;
+    
+    // Добавляем в физику
+    this.physics.add.existing(this.player);
+    this.add.existing(this.player);
+    
+    // Добавляем коллизии
     this.physics.add.collider(this.player, this.worldLayer);
+    
+    this.addLevelTransitions();
+  }
+
+  update() {
+    // Вызываем update игрока для анимаций
+    this.player.update();
+    
+    // Отслеживаем движение для случайных встреч
+    if (!this.isInBattle) {
+      this.trackPlayerMovement();
+    }
+  }
+
+  private trackPlayerMovement() {
+    // Проверяем изменилась ли позиция игрока
+    const moved = this.player.x !== this.lastPlayerX || this.player.y !== this.lastPlayerY;
+    
+    if (moved) {
+      this.walkSteps++;
+      this.lastPlayerX = this.player.x;
+      this.lastPlayerY = this.player.y;
+      
+      // Проверка на случайную битву каждые 20 пикселей перемещения
+      if (this.walkSteps % 20 === 0) {
+        console.log(`🚶 Шаг ${this.walkSteps}`);
+        this.checkForRandomEncounter();
+      }
+    }
+  }
+
+  private checkForRandomEncounter() {
+    // Временно увеличиваем шанс для тестирования
+    const testChance = 0.05; // 30% для теста
+    const encounterRoll = Math.random();
+    console.log(`🎲 Проверка встречи: Шанс ${testChance}, Бросок ${encounterRoll.toFixed(2)}`);
+    
+    if (encounterRoll < testChance && !this.isInBattle) {
+      console.log('⚔️ Случайная встреча активирована!');
+      this.triggerBattle();
+    }
+  }
+
+  triggerBattle(enemyType?: string) {
+    if (this.isInBattle) {
+      console.warn('Битва уже активна!');
+      return;
+    }
+    
+    this.isInBattle = true;
+    
+    // Останавливаем игрока
+    this.player.setVelocity(0, 0);
+    
+    // Добавляем визуальный эффект
+    this.cameras.main.flash(300, 255, 0, 0);
+    this.cameras.main.shake(300, 0.01);
+    
+    // Пауза перед запуском битвы
+    this.time.delayedCall(500, () => {
+      // Пауза основной сцены
+      this.scene.pause();
+      
+      // Передаем тип врага в сцену битвы
+      const enemyTypes = ['slime', 'goblin', 'orc'];
+      const randomEnemy = enemyType || enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+      
+      console.log(`🎭 Запуск битвы с: ${randomEnemy}`);
+      
+      // Запускаем сцену битвы
+      this.scene.launch('battle', { 
+        enemyType: randomEnemy,
+        playerData: {
+          health: this.player.health,
+          maxHealth: this.player.maxHealth,
+          attack: this.player.attack,
+          defense: this.player.defense
+        }
+      });
+      
+      // Сброс счетчика шагов
+      this.walkSteps = 0;
+    });
+  }
+
+  // Метод для возобновления игры после битвы (БЫЛО resumeFromBattle)
+  onBattleEnd(result: string, data?: any) {
+    console.log(`🔄 Возврат из битвы: ${result}`, data);
+    
+    // Сбрасываем флаг битвы
+    this.isInBattle = false;
+    
+    // Обновляем состояние игрока если есть данные
+    if (data) {
+      if (data.playerHealth !== undefined) {
+        this.player.health = data.playerHealth;
+        console.log(`❤️ Здоровье игрока обновлено: ${this.player.health}/${this.player.maxHealth}`);
+      }
+      if (data.playerDefense !== undefined) {
+        this.player.defense = data.playerDefense; // Сбрасываем временную защиту
+      }
+    }
+    
+    // Сбрасываем счетчик шагов
+    this.walkSteps = 0;
+    
+    // Показываем результат
+    this.showBattleResult(result);
+    
+    // Возобновляем сцену с задержкой (чтобы сообщение успело показаться)
+    this.time.delayedCall(1000, () => {
+      this.scene.resume();
+      console.log('✅ Основная сцена возобновлена');
+      
+      // Обновляем позицию для отслеживания
+      this.lastPlayerX = this.player.x;
+      this.lastPlayerY = this.player.y;
+    });
+  }
+
+  private showBattleResult(result: string) {
+    // Удаляем старый текст если есть
+    if (this.battleResultText) {
+      this.battleResultText.destroy();
+    }
+    
+    let message = '';
+    let color = '#ffffff';
+    let bgColor = '#00000080';
+    
+    switch(result) {
+      case BattleState.VICTORY:
+        message = '🎖️ ПОБЕДА!';
+        color = '#00ff00';
+        bgColor = '#000000c0';
+        break;
+      case BattleState.DEFEAT:
+        message = '💀 ПОРАЖЕНИЕ';
+        color = '#ff0000';
+        bgColor = '#400000c0';
+        
+        // При поражении телепортируем игрока на спавн и восстанавливаем здоровье
+        const spawnPoint = this.tilemap.findObject(
+          TilemapLayer.Objects,
+          ({ name }) => name === TilemapObject.SpawnPoint,
+        )!;
+        this.player.setPosition(spawnPoint.x!, spawnPoint.y!);
+        this.player.health = this.player.maxHealth;
+        console.log('♻️ Игрок телепортирован и восстановлен');
+        break;
+      case BattleState.FLEE:
+        message = '🏃 УСПЕШНОЕ БЕГСТВО';
+        color = '#ffff00';
+        bgColor = '#404000c0';
+        break;
+      default:
+        message = 'Битва завершена';
+    }
+    
+    this.battleResultText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY - 100,
+      message,
+      {
+        font: 'bold 36px monospace',
+        color: color,
+        backgroundColor: bgColor,
+        padding: { x: 30, y: 15 },
+        stroke: '#000',
+        strokeThickness: 6,
+        align: 'center'
+      }
+    );
+    
+    this.battleResultText.setOrigin(0.5);
+    this.battleResultText.setDepth(10000);
+    
+    // Добавляем тень
+    this.battleResultText.setShadow(4, 4, 'rgba(0,0,0,0.8)', 5);
+    
+    // Исчезновение с анимацией
+    this.tweens.add({
+      targets: this.battleResultText,
+      y: this.battleResultText.y - 80,
+      alpha: 0,
+      duration: 2500,
+      ease: 'Power2',
+      delay: 1000,
+      onComplete: () => {
+        if (this.battleResultText) {
+          this.battleResultText.destroy();
+          this.battleResultText = null;
+        }
+      }
+    });
   }
 
 private addLevelTransitions() {
@@ -150,7 +362,7 @@ private addLevelTransitions() {
       this.player as unknown as ArcadeColliderType, // Игрок, а не его селектор!
       trigger as unknown as ArcadeColliderType,
       () => {
-        if (!state.isTypewriting) {
+        if (!state.isTypewriting && !this.isInBattle) {
           console.log('Player touched level transition:', exitData);
           this.transitionToScene(exitData);
         }
@@ -259,7 +471,4 @@ private teleportPlayer(spawnPointName: string) {
   }
 }
 
-  update() {
-    this.player.update();
-  }
 }

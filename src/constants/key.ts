@@ -1,3 +1,4 @@
+//src/constants/key.ts
 const atlas = {
   player: 'player',
 } as const;

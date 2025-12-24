@@ -1,3 +1,4 @@
+// src/components/Typewriter.tsx
 import type Phaser from 'phaser';
 import { Text, useRef, useScene } from 'phaser-jsx';
 
