@@ -1,7 +1,9 @@
 // @ts-nocheck
-// src/scenes/Main.tsx (исправленная версия)
+// src/scenes/Main.tsx
 import Phaser from 'phaser';
 import { render } from 'phaser-jsx';
+import { NPC } from '../entities/NPC';
+import { testDialog } from '../data/dialogs/test_npc.ts';
 
 import {TilemapDebug, Typewriter } from '../components';
 import {
@@ -13,7 +15,7 @@ import {
 } from '../constants';
 import { Player } from '../sprites';
 import { state } from '../state';
-import { BattleState } from '../constants/battle'; // Добавляем импорт
+import { BattleState } from '../constants/battle';
 
 interface Sign extends Phaser.Physics.Arcade.StaticBody {
   text?: string;
@@ -25,6 +27,7 @@ interface Sign extends Phaser.Physics.Arcade.StaticBody {
 }
 
 export class Main extends Phaser.Scene {
+  private npcs: NPC[] = [];
   private player!: Player;
   private sign!: Sign;
   private tilemap!: Phaser.Tilemaps.Tilemap;
@@ -37,6 +40,7 @@ export class Main extends Phaser.Scene {
   private lastPlayerY: number = 0;
   private isInBattle: boolean = false;
   private battleResultText: Phaser.GameObjects.Text | null = null;
+  private interactText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super(key.scene.main);
@@ -75,6 +79,7 @@ export class Main extends Phaser.Scene {
     aboveLayer.setDepth(Depth.AbovePlayer);
 
     this.addPlayer();
+    this.addNPCs();
 
     // Установите границы камеры
     this.cameras.main.setBounds(
@@ -89,7 +94,7 @@ export class Main extends Phaser.Scene {
     state.isTypewriting = true;
     render(
       <Typewriter
-        text="WASD or arrow keys to move."
+        text="WASD or arrow keys to move. E - interact with NPC"
         onEnd={() => (state.isTypewriting = false)}
       />,
       this,
@@ -130,13 +135,137 @@ export class Main extends Phaser.Scene {
     this.addLevelTransitions();
   }
 
+  private addNPCs() {
+    // Пример создания NPC
+    const villager = new NPC(this, {
+      id: 'test_villager',
+      name: 'Деревенский житель',
+      x: 300,
+      y: 200,
+      texture: 'atlas',
+      frame: 'misa-front',
+      dialogId: 'test_npc',
+      facing: 'front',
+      interactRange: 60
+    });
+    
+    villager.setDialogData(testDialog);
+    this.npcs.push(villager);
+    
+    // Добавляем обработчик взаимодействия
+    this.setupNPCInteractions();
+  }
+  
+  private setupNPCInteractions() {
+    // Клавиша для взаимодействия
+    this.input.keyboard?.on('keydown-E', () => {
+      if (this.isInBattle || state.isTypewriting) return;
+      
+      const nearbyNPC = this.getNearestInteractableNPC();
+      if (nearbyNPC) {
+        this.startDialog(nearbyNPC);
+      }
+    });
+  }
+  
+  private getNearestInteractableNPC(): NPC | null {
+    let nearestNPC: NPC | null = null;
+    let nearestDistance = Infinity;
+    
+    this.npcs.forEach(npc => {
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        npc.x,
+        npc.y
+      );
+      
+      if (distance < (npc.config.interactRange || 50) && distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestNPC = npc;
+      }
+    });
+    
+    return nearestNPC;
+  }
+  
+  private startDialog(npc: NPC) {
+    console.log(`Начало диалога с ${npc.config.name}`);
+    
+    // Паузим основную сцену
+    this.scene.pause();
+    
+    // Запускаем сцену диалогов
+    this.scene.launch('dialog', {
+      dialogData: npc.dialogData
+    });
+  }
+  
+  // Метод для завершения диалога
+  onDialogEnd() {
+    console.log('Диалог завершен');
+    
+    // Возобновляем сцену
+    this.scene.resume();
+    
+    // Сбрасываем интерактивность всех NPC
+    this.npcs.forEach(npc => npc.setInteractable(false));
+    
+    // Удаляем текст взаимодействия
+    if (this.interactText) {
+      this.interactText.destroy();
+      this.interactText = null;
+    }
+  }
+
   update() {
     // Вызываем update игрока для анимаций
     this.player.update();
     
+    // Обновляем NPC
+    this.npcs.forEach(npc => npc.update());
+    
+    // Проверяем интерактивность NPC на основе расстояния
+    this.checkNPCInteractions();
+    
     // Отслеживаем движение для случайных встреч
     if (!this.isInBattle) {
       this.trackPlayerMovement();
+    }
+  }
+
+  private checkNPCInteractions() {
+    const nearestNPC = this.getNearestInteractableNPC();
+    
+    // Обновляем интерактивность всех NPC
+    this.npcs.forEach(npc => {
+      const isInteractable = (npc === nearestNPC);
+      if (isInteractable !== npc.isInteractable) {
+        npc.setInteractable(isInteractable);
+      }
+    });
+    
+    // Показываем/скрываем текст взаимодействия
+    if (nearestNPC) {
+      if (!this.interactText) {
+        this.interactText = this.add.text(
+          this.cameras.main.centerX,
+          this.cameras.main.centerY + 200,
+          '[E] Поговорить',
+          {
+            font: '20px monospace',
+            color: '#ffff00',
+            backgroundColor: '#000000a0',
+            padding: { x: 15, y: 8 },
+            align: 'center'
+          }
+        );
+        this.interactText.setOrigin(0.5);
+        this.interactText.setDepth(10000);
+      }
+    } else if (this.interactText) {
+      this.interactText.destroy();
+      this.interactText = null;
     }
   }
 
@@ -159,7 +288,7 @@ export class Main extends Phaser.Scene {
 
   private checkForRandomEncounter() {
     // Временно увеличиваем шанс для тестирования
-    const testChance = 0.05; // 30% для теста
+    const testChance = 0.05; // 5% для теста
     const encounterRoll = Math.random();
     console.log(`🎲 Проверка встречи: Шанс ${testChance}, Бросок ${encounterRoll.toFixed(2)}`);
     
@@ -211,7 +340,7 @@ export class Main extends Phaser.Scene {
     });
   }
 
-  // Метод для возобновления игры после битвы (БЫЛО resumeFromBattle)
+  // Метод для возобновления игры после битвы
   onBattleEnd(result: string, data?: any) {
     console.log(`🔄 Возврат из битвы: ${result}`, data);
     
@@ -323,152 +452,152 @@ export class Main extends Phaser.Scene {
     });
   }
 
-private addLevelTransitions() {
-   // Находим ВСЕ объекты перехода на карте
-  const transitionObjects = this.tilemap.filterObjects(
-    TilemapLayer.Objects,
-    (obj: any) => obj.name === 'NextLevel' || obj.type === 'exit'
-  );
-
-  // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ:
-  if (!transitionObjects || transitionObjects.length === 0) {
-    console.log('No transition objects found on this map');
-    return;
-  }
-  transitionObjects.forEach(transition => {
-    // Создаём невидимую физическую зону
-    const trigger = this.physics.add.staticBody(
-      transition.x!,
-      transition.y!,
-      transition.width!,
-      transition.height!
+  private addLevelTransitions() {
+    // Находим ВСЕ объекты перехода на карте
+    const transitionObjects = this.tilemap.filterObjects(
+      TilemapLayer.Objects,
+      (obj: any) => obj.name === 'NextLevel' || obj.type === 'exit'
     );
 
-    // Собираем свойства из Tiled
-    const properties = transition.properties || [];
-    const exitData = {
-      targetScene: properties.find((p: {name: string, value: any}) => p.name === 'targetScene')?.value || 'main',
-      spawnPoint: properties.find((p: {name: string, value: any}) => p.name === 'spawnPoint')?.value || 'default',
-      fadeDuration: parseInt(properties.find((p: {name: string, value: any}) => p.name === 'fadeDuration')?.value || '1000')
-    };
-
-    // Сохраняем данные в триггере
-    (trigger as any).exitData = exitData;
-
-    type ArcadeColliderType = Phaser.Types.Physics.Arcade.ArcadeColliderType;
-
-    // ПЕРЕХОД ПРИ ЛЮБОМ Соприкосновении (без нажатия Space)
-    this.physics.add.overlap(
-      this.player as unknown as ArcadeColliderType, // Игрок, а не его селектор!
-      trigger as unknown as ArcadeColliderType,
-      () => {
-        if (!state.isTypewriting && !this.isInBattle) {
-          console.log('Player touched level transition:', exitData);
-          this.transitionToScene(exitData);
-        }
-      },
-      undefined,
-      this
-    );
-
-    // Визуализация для отладки (можно убрать позже)
-    if (process.env.NODE_ENV === 'development') {
-      const debugRect = this.add.rectangle(
-        transition.x! + transition.width! / 2,
-        transition.y! + transition.height! / 2,
-        transition.width!,
-        transition.height!,
-        0x00ff00, 0.3
-      );
-      debugRect.setDepth(Depth.AbovePlayer);
-      
-      // Добавляем текст с именем перехода
-      this.add.text(
-        transition.x!,
-        transition.y! - 20,
-        `→ ${exitData.targetScene}`,
-        { fontSize: '12px', color: '#0f0' }
-      ).setDepth(Depth.AbovePlayer);
+    // ДОБАВЬТЕ ЭТУ ПРОВЕРКУ:
+    if (!transitionObjects || transitionObjects.length === 0) {
+      console.log('No transition objects found on this map');
+      return;
     }
-  });
-}
-
-private transitionToScene(exitData: any) {
-  console.log('=== LEVEL TRANSITION ===');
-  console.log('Transition data:', exitData);
-  
-  if (!exitData?.targetScene) return;
-  
-  // Блокируем ввод и движение
-  state.isTypewriting = true;
-  this.player.setVelocity(0, 0); // Останавливаем игрока
-  
-  // Приводим к нижнему регистру для совместимости
-  const targetScene = exitData.targetScene.toLowerCase();
-  
-  // Подготовка данных игрока
-  const playerData = {
-    x: this.player.x,
-    y: this.player.y,
-    health: 100,
-    inventory: []
-  };
-  
-  // Эффект "всасывания" или волны перед переходом (опционально)
-  this.cameras.main.shake(300, 0.01);
-  this.cameras.main.flash(300, 100, 100, 255);
-  
-  // Задержка перед затемнением
-  this.time.delayedCall(300, () => {
-    // Затемнение экрана
-    this.cameras.main.fadeOut(exitData.fadeDuration, 0, 0, 0);
     
-    // После затемнения - переход
-    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-      console.log(`Transitioning to: ${targetScene}`);
-      
-      if (targetScene === 'main') {
-        // Телепорт внутри текущей сцены
-        this.teleportPlayer(exitData.spawnPoint);
-        this.cameras.main.fadeIn(exitData.fadeDuration);
+    transitionObjects.forEach(transition => {
+      // Создаём невидимую физическую зону
+      const trigger = this.physics.add.staticBody(
+        transition.x!,
+        transition.y!,
+        transition.width!,
+        transition.height!
+      );
+
+      // Собираем свойства из Tiled
+      const properties = transition.properties || [];
+      const exitData = {
+        targetScene: properties.find((p: {name: string, value: any}) => p.name === 'targetScene')?.value || 'main',
+        spawnPoint: properties.find((p: {name: string, value: any}) => p.name === 'spawnPoint')?.value || 'default',
+        fadeDuration: parseInt(properties.find((p: {name: string, value: any}) => p.name === 'fadeDuration')?.value || '1000')
+      };
+
+      // Сохраняем данные в триггере
+      (trigger as any).exitData = exitData;
+
+      type ArcadeColliderType = Phaser.Types.Physics.Arcade.ArcadeColliderType;
+
+      // ПЕРЕХОД ПРИ ЛЮБОМ Соприкосновении (без нажатия Space)
+      this.physics.add.overlap(
+        this.player as unknown as ArcadeColliderType,
+        trigger as unknown as ArcadeColliderType,
+        () => {
+          if (!state.isTypewriting && !this.isInBattle) {
+            console.log('Player touched level transition:', exitData);
+            this.transitionToScene(exitData);
+          }
+        },
+        undefined,
+        this
+      );
+
+      // Визуализация для отладки (можно убрать позже)
+      if (process.env.NODE_ENV === 'development') {
+        const debugRect = this.add.rectangle(
+          transition.x! + transition.width! / 2,
+          transition.y! + transition.height! / 2,
+          transition.width!,
+          transition.height!,
+          0x00ff00, 0.3
+        );
+        debugRect.setDepth(Depth.AbovePlayer);
         
-        // Разблокировка
-        this.time.delayedCall(exitData.fadeDuration, () => {
-          state.isTypewriting = false;
-        });
-      } else {
-        // Переход в другую сцену
-        this.scene.start(targetScene, {
-          spawnPoint: exitData.spawnPoint || 'default',
-          playerData: playerData
-        });
+        // Добавляем текст с именем перехода
+        this.add.text(
+          transition.x!,
+          transition.y! - 20,
+          `→ ${exitData.targetScene}`,
+          { fontSize: '12px', color: '#0f0' }
+        ).setDepth(Depth.AbovePlayer);
       }
     });
-  });
-}
-
-// Вспомогательный метод для телепорта
-private teleportPlayer(spawnPointName: string) {
-  const spawnPoint = this.tilemap.findObject(
-    TilemapLayer.Objects,
-    (obj: any) => obj.name === spawnPointName
-  );
-  
-  if (spawnPoint) {
-    console.log(`Teleporting to: ${spawnPoint.x}, ${spawnPoint.y}`);
-    this.player.setPosition(spawnPoint.x!, spawnPoint.y!);
-    
-    // Небольшый эффект появления
-    this.player.setAlpha(0);
-    this.tweens.add({
-      targets: this.player,
-      alpha: 1,
-      duration: 500
-    });
-  } else {
-    console.warn(`Spawn point "${spawnPointName}" not found`);
-    this.player.setPosition(100, 100);
   }
-}
 
+  private transitionToScene(exitData: any) {
+    console.log('=== LEVEL TRANSITION ===');
+    console.log('Transition data:', exitData);
+    
+    if (!exitData?.targetScene) return;
+    
+    // Блокируем ввод и движение
+    state.isTypewriting = true;
+    this.player.setVelocity(0, 0); // Останавливаем игрока
+    
+    // Приводим к нижнему регистру для совместимости
+    const targetScene = exitData.targetScene.toLowerCase();
+    
+    // Подготовка данных игрока
+    const playerData = {
+      x: this.player.x,
+      y: this.player.y,
+      health: 100,
+      inventory: []
+    };
+    
+    // Эффект "всасывания" или волны перед переходом (опционально)
+    this.cameras.main.shake(300, 0.01);
+    this.cameras.main.flash(300, 100, 100, 255);
+    
+    // Задержка перед затемнением
+    this.time.delayedCall(300, () => {
+      // Затемнение экрана
+      this.cameras.main.fadeOut(exitData.fadeDuration, 0, 0, 0);
+      
+      // После затемнения - переход
+      this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        console.log(`Transitioning to: ${targetScene}`);
+        
+        if (targetScene === 'main') {
+          // Телепорт внутри текущей сцены
+          this.teleportPlayer(exitData.spawnPoint);
+          this.cameras.main.fadeIn(exitData.fadeDuration);
+          
+          // Разблокировка
+          this.time.delayedCall(exitData.fadeDuration, () => {
+            state.isTypewriting = false;
+          });
+        } else {
+          // Переход в другую сцену
+          this.scene.start(targetScene, {
+            spawnPoint: exitData.spawnPoint || 'default',
+            playerData: playerData
+          });
+        }
+      });
+    });
+  }
+
+  // Вспомогательный метод для телепорта
+  private teleportPlayer(spawnPointName: string) {
+    const spawnPoint = this.tilemap.findObject(
+      TilemapLayer.Objects,
+      (obj: any) => obj.name === spawnPointName
+    );
+    
+    if (spawnPoint) {
+      console.log(`Teleporting to: ${spawnPoint.x}, ${spawnPoint.y}`);
+      this.player.setPosition(spawnPoint.x!, spawnPoint.y!);
+      
+      // Небольшый эффект появления
+      this.player.setAlpha(0);
+      this.tweens.add({
+        targets: this.player,
+        alpha: 1,
+        duration: 500
+      });
+    } else {
+      console.warn(`Spawn point "${spawnPointName}" not found`);
+      this.player.setPosition(100, 100);
+    }
+  }
 }

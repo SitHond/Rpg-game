@@ -16,6 +16,7 @@ const game = new Phaser.Game({
     scenes.Main,
     scenes.Menu,
     scenes.BattleScene,
+    scenes.DialogScene,
   ],
   physics: {
     default: 'arcade',
