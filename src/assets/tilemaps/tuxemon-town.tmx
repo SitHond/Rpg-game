@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="284">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="32" tileheight="32" infinite="0" nextlayerid="6" nextobjectid="290">
  <editorsettings>
   <export target="tuxemon-town.json" format="json"/>
  </editorsettings>
@@ -3534,12 +3534,24 @@
   <object id="281" name="teleport_spot" x="280.667" y="923.333">
    <point/>
   </object>
-  <object id="283" name="NextLevel" x="422.667" y="923.333" width="24" height="28">
+  <object id="283" name="NextLevel" x="302.667" y="958" width="24" height="28">
    <properties>
     <property name="adeDuration" type="int" value="1000"/>
     <property name="spawnPoint" value="Spawn Point"/>
-    <property name="targetScene" value="main"/>
+    <property name="targetScene" value="forest"/>
     <property name="type" value="exit"/>
+   </properties>
+  </object>
+  <object id="287" name="npc1" x="394.667" y="864" width="32" height="32">
+   <properties>
+    <property name="npcId" value="villager_1"/>
+    <property name="type" value="npc"/>
+   </properties>
+  </object>
+  <object id="289" name="npc2" x="540" y="862" width="29.3333" height="28">
+   <properties>
+    <property name="npcid" value="shopkeeper"/>
+    <property name="type" value="npc"/>
    </properties>
   </object>
  </objectgroup>

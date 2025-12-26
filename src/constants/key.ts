@@ -11,6 +11,7 @@ const image = {
 const scene = {
   boot: 'boot',
   main: 'main',
+  forest: 'forest',
   menu: 'menu',
   dialog: 'dialog',
 } as const;

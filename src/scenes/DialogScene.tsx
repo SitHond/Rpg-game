@@ -8,16 +8,20 @@ export class DialogScene extends Phaser.Scene {
   private currentLine!: DialogLine;
   private dialogState: string = DialogState.TYPING;
   private currentText: string = '';
-  private typewriterSpeed: number = 50;
+  private typewriterSpeed: number = 30; // Быстрее для Undertale стиля
   private typewriterTimer?: Phaser.Time.TimerEvent;
-  private selectedChoice: number = 0;
   
   // UI элементы
   private dialogBox!: Phaser.GameObjects.Rectangle;
   private speakerText!: Phaser.GameObjects.Text;
   private dialogText!: Phaser.GameObjects.Text;
-  private choiceTexts: Phaser.GameObjects.Text[] = [];
   private hintText!: Phaser.GameObjects.Text;
+  private continueIndicator!: Phaser.GameObjects.Text;
+  private portraitSprite!: Phaser.GameObjects.Sprite;
+  
+  // Эффекты Undertale
+  private textSound!: Phaser.Sound.BaseSound;
+  private blinkTimer!: Phaser.Time.TimerEvent;
   
   constructor() {
     super(DialogKey.scene);
@@ -38,51 +42,103 @@ export class DialogScene extends Phaser.Scene {
   create() {
     console.log('💬 DialogScene create');
     
-    // Затемняем фон
-    const overlay = this.add.rectangle(0, 0, 800, 600, 0x000000, 0.7);
+    // Затемняем фон (как в Undertale)
+    const overlay = this.add.rectangle(0, 0, 800, 600, 0x000000, 0.5);
     overlay.setOrigin(0, 0);
     overlay.setInteractive();
     
-    // Создаем диалоговое окно
-    this.createDialogUI();
+    // Создаем диалоговое окно в стиле Undertale
+    this.createUndertaleDialogUI();
     
     // Настраиваем управление
-    this.setupControls();
+    this.setupUndertaleControls();
     
     // Начинаем диалог
     this.startDialog();
+    
+    // Добавляем звук печатания текста (опционально)
+    this.setupSounds();
   }
 
-  private createDialogUI() {
-    // Фон диалогового окна
-    this.dialogBox = this.add.rectangle(400, 450, 700, 200, 0x000000, 0.9);
-    this.dialogBox.setStrokeStyle(2, 0xffff00);
+  private createUndertaleDialogUI() {
+    // Фон диалогового окна (черная полоса как в Undertale)
+    this.dialogBox = this.add.rectangle(0, 400, 800, 200, 0x000000, 0.95);
+    this.dialogBox.setOrigin(0, 0);
+    this.dialogBox.setStrokeStyle(3, 0xffffff);
     
-    // Имя говорящего
-    this.speakerText = this.add.text(100, 380, '', {
-      font: 'bold 20px monospace',
+    // Портрет персонажа (если есть)
+    if (this.dialogData.portrait) {
+      this.portraitSprite = this.add.sprite(50, 450, this.dialogData.portrait);
+      this.portraitSprite.setScale(0.8);
+      this.portraitSprite.setAlpha(0);
+      
+      // Плавное появление
+      this.tweens.add({
+        targets: this.portraitSprite,
+        alpha: 1,
+        duration: 500,
+        ease: 'Power2'
+      });
+    }
+    
+    // Имя говорящего (желтый текст как в Undertale)
+    this.speakerText = this.add.text(120, 420, '', {
+      font: 'bold 22px "Courier New"',
       color: '#ffff00',
-      backgroundColor: '#00000080',
-      padding: { left: 10, right: 10, top: 5, bottom: 5 }
+      stroke: '#000000',
+      strokeThickness: 4,
+      shadow: {
+        offsetX: 2,
+        offsetY: 2,
+        color: '#000000',
+        blur: 0,
+        stroke: true
+      }
     });
     
-    // Текст диалога
-    this.dialogText = this.add.text(100, 420, '', {
-      font: '18px monospace',
+    // Текст диалога (белый текст с черной обводкой)
+    this.dialogText = this.add.text(120, 460, '', {
+      font: '20px "Courier New"',
       color: '#ffffff',
-      backgroundColor: '#000000c0',
-      padding: { left: 15, right: 15, top: 10, bottom: 10 },
-      wordWrap: { width: 600 }
+      stroke: '#000000',
+      strokeThickness: 3,
+      wordWrap: { width: 650 }
     });
     
-    // Подсказка управления
-    this.hintText = this.add.text(400, 530, '', {
-      font: '14px monospace',
+    // Подсказка управления (полупрозрачная)
+    this.hintText = this.add.text(400, 550, '[Z] Продолжить • [X] Пропустить', {
+      font: '16px "Courier New"',
       color: '#888888',
-      backgroundColor: '#00000080',
-      padding: { left: 10, right: 10, top: 5, bottom: 5 }
+      backgroundColor: '#00000040',
+      padding: { left: 15, right: 15, top: 8, bottom: 8 }
     });
     this.hintText.setOrigin(0.5);
+    
+    // Индикатор продолжения (мигающий треугольник)
+    this.continueIndicator = this.add.text(750, 550, '▼', {
+      font: '20px "Courier New"',
+      color: '#ffff00',
+      //alpha: 0
+    });
+    this.continueIndicator.setOrigin(1, 0.5);
+    
+    // Эффект появления UI
+    this.tweens.add({
+      targets: [this.dialogBox, this.speakerText, this.dialogText, this.hintText],
+      y: '-=10',
+      alpha: { from: 0, to: 1 },
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+  }
+
+  private setupSounds() {
+    try {
+      // Звук печатания текста (похожий на Undertale)
+      this.textSound = this.sound.add('dialog_text', { volume: 0.1 });
+    } catch {
+      // Если звук не загружен, игнорируем
+    }
   }
 
   private startDialog() {
@@ -102,84 +158,85 @@ export class DialogScene extends Phaser.Scene {
     this.dialogState = DialogState.TYPING;
     this.currentText = '';
     
-    // Очищаем выборы
-    this.clearChoices();
+    // Обновляем имя говорящего
+    const speakerName = this.currentLine.speaker || this.dialogData.name;
+    this.speakerText.setText(speakerName);
+    
+    // Скрываем индикатор продолжения
+    this.hideContinueIndicator();
     
     // Обновляем подсказку
-    this.hintText.setText('SPACE - Пропустить');
-    
-    let index = 0;
-    const text = this.currentLine.text;
+    this.hintText.setText('[Z] Продолжить • [X] Пропустить');
     
     // Очищаем предыдущий таймер
     if (this.typewriterTimer) {
       this.typewriterTimer.remove();
     }
     
-    // Обновляем имя говорящего
-    this.speakerText.setText(this.currentLine.speaker || this.dialogData.name);
+    // Начинаем печатать текст
+    const fullText = this.currentLine.text;
+    let index = 0;
+    let soundCounter = 0;
     
     this.typewriterTimer = this.time.addEvent({
       delay: this.typewriterSpeed,
       callback: () => {
-        if (index < text.length) {
-          this.currentText += text.charAt(index);
+        if (index < fullText.length) {
+          // Добавляем символ
+          this.currentText += fullText.charAt(index);
           this.dialogText.setText(this.currentText);
+          
+          // Проигрываем звук печатания (каждый 3-й символ для экономии)
+          if (this.textSound && soundCounter % 3 === 0) {
+            this.textSound.play();
+          }
+          
           index++;
+          soundCounter++;
         } else {
           this.finishTyping();
         }
       },
       callbackScope: this,
-      repeat: text.length
+      repeat: fullText.length
     });
   }
 
   private finishTyping() {
     this.dialogState = DialogState.WAITING;
     
-    if (this.currentLine.choices && this.currentLine.choices.length > 0) {
-      this.dialogState = DialogState.CHOICE;
-      this.selectedChoice = 0;
-      this.showChoices();
-      this.hintText.setText('W/S - Выбор, ENTER - Подтвердить, ESC - Выйти');
-    } else {
-      this.hintText.setText('SPACE/ENTER - Продолжить, ESC - Выйти');
+    // Показываем мигающий индикатор продолжения
+    this.showContinueIndicator();
+    
+    // Обновляем подсказку
+    this.hintText.setText('[Z/Пробел] Продолжить • [X] Выйти');
+    
+    // Удаляем таймер
+    if (this.typewriterTimer) {
+      this.typewriterTimer.remove();
+      this.typewriterTimer = undefined;
     }
   }
 
-  private showChoices() {
-    this.clearChoices();
+  private showContinueIndicator() {
+    this.continueIndicator.setAlpha(1);
     
-    if (!this.currentLine.choices) return;
-    
-    this.currentLine.choices.forEach((choice, index) => {
-      const isSelected = index === this.selectedChoice;
-      const choiceText = this.add.text(
-        120,
-        460 + index * 35,
-        `${isSelected ? '> ' : '  '}${choice.text}`,
-        {
-          font: '18px monospace',
-          color: isSelected ? '#ffff00' : '#cccccc',
-          backgroundColor: isSelected ? '#33330080' : '#00000080',
-          padding: { left: 15, right: 15, top: 8, bottom: 8 }
-        }
-      );
-      
-      // Добавляем интерактивность
-      choiceText.setInteractive({ useHandCursor: true });
-      choiceText.on('pointerdown', () => {
-        this.selectChoice(index);
-      });
-      
-      this.choiceTexts.push(choiceText);
+    // Мигающая анимация
+    this.blinkTimer = this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        this.continueIndicator.setAlpha(this.continueIndicator.alpha === 0 ? 1 : 0);
+      },
+      callbackScope: this,
+      loop: true
     });
   }
 
-  private clearChoices() {
-    this.choiceTexts.forEach(choice => choice.destroy());
-    this.choiceTexts = [];
+  private hideContinueIndicator() {
+    this.continueIndicator.setAlpha(0);
+    if (this.blinkTimer) {
+      this.blinkTimer.remove();
+    }
   }
 
   private nextLine() {
@@ -191,10 +248,15 @@ export class DialogScene extends Phaser.Scene {
     let nextLineId: string;
     
     if (Array.isArray(this.currentLine.next)) {
-      // Случайный выбор из массива
+      // Случайный выбор из массива (для разнообразия диалогов)
       nextLineId = this.currentLine.next[Math.floor(Math.random() * this.currentLine.next.length)];
     } else {
       nextLineId = this.currentLine.next;
+    }
+    
+    if (nextLineId === 'close') {
+      this.endDialog();
+      return;
     }
     
     this.currentLine = this.dialogData.lines[nextLineId];
@@ -208,75 +270,28 @@ export class DialogScene extends Phaser.Scene {
     this.startTyping();
   }
 
-  private selectChoice(index: number) {
-    if (!this.currentLine.choices || index >= this.currentLine.choices.length) {
-      return;
-    }
+  private setupUndertaleControls() {
+    // Основная кнопка продолжения (Z как в Undertale)
+    this.input.keyboard?.on('keydown-Z', () => {
+      this.handleContinue();
+    });
     
-    const choice = this.currentLine.choices[index];
-    this.currentLine = this.dialogData.lines[choice.next];
-    
-    if (!this.currentLine) {
-      console.error('Реплика выбора не найдена:', choice.next);
-      this.endDialog();
-      return;
-    }
-    
-    this.startTyping();
-  }
-
-  private setupControls() {
-    // Пропускаем текст
+    // Пробел для продолжения
     this.input.keyboard?.on('keydown-SPACE', () => {
+      this.handleContinue();
+    });
+    
+    // Клик мышкой для продолжения
+    this.input.on('pointerdown', () => {
+      this.handleContinue();
+    });
+    
+    // Кнопка пропуска (X как в Undertale)
+    this.input.keyboard?.on('keydown-X', () => {
       if (this.dialogState === DialogState.TYPING) {
         this.skipTyping();
-      } else if (this.dialogState === DialogState.WAITING) {
-        this.nextLine();
-      }
-    });
-    
-    this.input.keyboard?.on('keydown-ENTER', () => {
-      if (this.dialogState === DialogState.TYPING) {
-        this.skipTyping();
-      } else if (this.dialogState === DialogState.WAITING) {
-        this.nextLine();
-      } else if (this.dialogState === DialogState.CHOICE) {
-        this.selectChoice(this.selectedChoice);
-      }
-    });
-    
-    // Выбор вариантов
-    this.input.keyboard?.on('keydown-W', () => {
-      if (this.dialogState === DialogState.CHOICE) {
-        this.selectedChoice = Math.max(0, this.selectedChoice - 1);
-        this.updateChoicesSelection();
-      }
-    });
-    
-    this.input.keyboard?.on('keydown-UP', () => {
-      if (this.dialogState === DialogState.CHOICE) {
-        this.selectedChoice = Math.max(0, this.selectedChoice - 1);
-        this.updateChoicesSelection();
-      }
-    });
-    
-    this.input.keyboard?.on('keydown-S', () => {
-      if (this.dialogState === DialogState.CHOICE) {
-        this.selectedChoice = Math.min(
-          (this.currentLine.choices?.length || 1) - 1,
-          this.selectedChoice + 1
-        );
-        this.updateChoicesSelection();
-      }
-    });
-    
-    this.input.keyboard?.on('keydown-DOWN', () => {
-      if (this.dialogState === DialogState.CHOICE) {
-        this.selectedChoice = Math.min(
-          (this.currentLine.choices?.length || 1) - 1,
-          this.selectedChoice + 1
-        );
-        this.updateChoicesSelection();
+      } else {
+        this.endDialog();
       }
     });
     
@@ -285,9 +300,16 @@ export class DialogScene extends Phaser.Scene {
       this.endDialog();
     });
     
-    this.input.keyboard?.on('keydown-Q', () => {
-      this.endDialog();
-    });
+    // Настройка мыши
+    this.input.mouse?.disableContextMenu();
+  }
+
+  private handleContinue() {
+    if (this.dialogState === DialogState.TYPING) {
+      this.skipTyping();
+    } else if (this.dialogState === DialogState.WAITING) {
+      this.nextLine();
+    }
   }
 
   private skipTyping() {
@@ -295,48 +317,59 @@ export class DialogScene extends Phaser.Scene {
       this.typewriterTimer.remove();
       this.typewriterTimer = undefined;
     }
+    
+    // Показываем весь текст сразу
     this.currentText = this.currentLine.text;
     this.dialogText.setText(this.currentText);
-    this.finishTyping();
-  }
-
-  private updateChoicesSelection() {
-    if (!this.currentLine.choices) return;
     
-    this.currentLine.choices.forEach((choice, index) => {
-      const choiceText = this.choiceTexts[index];
-      if (choiceText) {
-        const isSelected = index === this.selectedChoice;
-        choiceText.setText(`${isSelected ? '> ' : '  '}${choice.text}`);
-        choiceText.setStyle({
-          color: isSelected ? '#ffff00' : '#cccccc',
-          backgroundColor: isSelected ? '#33330080' : '#00000080'
-        });
-      }
-    });
+    // Проигрываем звук завершения
+    if (this.textSound) {
+      this.textSound.stop();
+    }
+    
+    this.finishTyping();
   }
 
   private endDialog() {
     console.log('💬 Диалог завершен');
     
-    // Убираем таймер если есть
-    if (this.typewriterTimer) {
-      this.typewriterTimer.remove();
-      this.typewriterTimer = undefined;
-    }
-    
-    // Возобновляем основную сцену
-    this.scene.stop(DialogKey.scene);
-    this.scene.resume('main');
-    
-    // Уведомляем основную сцену
-    const mainScene = this.scene.get('main');
-    if (mainScene && (mainScene as any).onDialogEnd) {
-      (mainScene as any).onDialogEnd();
-    }
+    // Эффект исчезновения
+    this.tweens.add({
+      targets: [this.dialogBox, this.speakerText, this.dialogText, this.hintText, this.continueIndicator],
+      alpha: 0,
+      y: '+=10',
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        // Убираем таймеры
+        if (this.typewriterTimer) {
+          this.typewriterTimer.remove();
+          this.typewriterTimer = undefined;
+        }
+        
+        if (this.blinkTimer) {
+          this.blinkTimer.remove();
+        }
+        
+        // Удаляем звук
+        if (this.textSound) {
+          this.textSound.stop();
+        }
+        
+        // Возобновляем основную сцену
+        this.scene.stop(DialogKey.scene);
+        this.scene.resume('main');
+        
+        // Уведомляем основную сцену
+        const mainScene = this.scene.get('main');
+        if (mainScene && (mainScene as any).onDialogEnd) {
+          (mainScene as any).onDialogEnd();
+        }
+      }
+    });
   }
 
   update() {
-    // Можно добавить мигающий курсор или другие эффекты
+    // Можем добавить дополнительные визуальные эффекты
   }
 }

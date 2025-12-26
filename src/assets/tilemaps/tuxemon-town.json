@@ -198,8 +198,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":280.666666666667,
-                 "y":923.333333333333
+                 "x":280.667,
+                 "y":923.333
                 }, 
                 {
                  "height":28,
@@ -219,7 +219,7 @@
                         {
                          "name":"targetScene",
                          "type":"string",
-                         "value":"main"
+                         "value":"forest"
                         }, 
                         {
                          "name":"type",
@@ -230,8 +230,52 @@
                  "type":"",
                  "visible":true,
                  "width":24,
-                 "x":422.666666666667,
-                 "y":923.333333333333
+                 "x":302.667,
+                 "y":957.999666666667
+                }, 
+                {
+                 "height":32,
+                 "id":287,
+                 "name":"npc1",
+                 "properties":[
+                        {
+                         "name":"npcId",
+                         "type":"string",
+                         "value":"villager_1"
+                        }, 
+                        {
+                         "name":"type",
+                         "type":"string",
+                         "value":"npc"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":394.666666666667,
+                 "y":864
+                }, 
+                {
+                 "height":28,
+                 "id":289,
+                 "name":"npc2",
+                 "properties":[
+                        {
+                         "name":"npcid",
+                         "type":"string",
+                         "value":"shopkeeper"
+                        }, 
+                        {
+                         "name":"type",
+                         "type":"string",
+                         "value":"npc"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":29.3333,
+                 "x":540.000016666667,
+                 "y":862
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -239,8 +283,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":5,
- "nextobjectid":284,
+ "nextlayerid":6,
+ "nextobjectid":290,
  "orientation":"orthogonal",
  "properties":[
         {

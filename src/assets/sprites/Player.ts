@@ -17,11 +17,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y, 'atlas', 'misa-front');
     
+    // Добавляем спрайт в сцену
     scene.add.existing(this);
+    
+    // Включаем физику для этого спрайта
     scene.physics.add.existing(this);
     
-    this.setCollideWorldBounds(true);
-    this.body!.setSize(20, 32);
+    // Устанавливаем физическое тело
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setCollideWorldBounds(true);
+    body.setSize(20, 32);
+    
     this.setScale(1.5);
     
     this.createAnimations();
