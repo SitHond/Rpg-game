@@ -1,0 +1,19 @@
+export const EmotionThresholds = {
+  TRUST_FOR_SPARE: 70,
+  CONFUSION_FOR_SPARE: 70,
+  AGGRESSION_HIGH: 70,
+};
+
+export const FocusTuning = {
+  GRAZE_GAIN: 2,
+  FOCUS_ACTION_GAIN: 5,
+  FOCUS_DAMAGE_REDUCTION: 0.25,
+};
+
+export const BattleTuning = {
+  REACT_PHASE_BASE_MS: 8000,
+  REACT_PHASE_TRUST_BONUS_MS: 800,
+  GRAZE_RADIUS_PX: 10,
+  HIT_INVULN_MS: 350,
+  BULLET_CLEAN_MARGIN_PX: 80,
+};

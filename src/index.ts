@@ -17,6 +17,8 @@ const game = new Phaser.Game({
     scenes.Menu,
     scenes.BattleScene,
     scenes.DialogScene,
+    scenes.Forest,
+    scenes.BattleUIScene,
   ],
   physics: {
     default: 'arcade',
@@ -30,7 +32,10 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
+  render: {
   pixelArt: true,
+  roundPixels: true,
+},
 });
 
 // Экспортируем игру глобально для отладки
